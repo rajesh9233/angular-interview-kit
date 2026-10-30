@@ -1,0 +1,132 @@
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">A</div>
+      <div><strong>Atlas</strong><span>ADMIN CONSOLE</span></div>
+    </div>
+
+    <div class="nav-label">WORKSPACE</div>
+    <button class="nav-item" [class.active]="isUsers()" (click)="setSection('users')">
+      <span class="nav-icon">♙</span><span>Users</span><span class="nav-count">{{ users().length }}</span>
+    </button>
+    <button class="nav-item" [class.active]="!isUsers()" (click)="setSection('products')">
+      <span class="nav-icon">▦</span><span>Products</span><span class="nav-count">{{ products().length }}</span>
+    </button>
+
+    <div class="sidebar-bottom">
+      <div class="avatar">JD</div>
+      <div class="profile"><strong>Jordan Davis</strong><span>Administrator</span></div>
+      <span class="more">•••</span>
+    </div>
+  </aside>
+
+  <main class="main-area">
+    <header class="topbar">
+      <div class="breadcrumbs"><span>Workspace</span><span class="crumb-slash">/</span><strong>{{ pageTitle() }}</strong></div>
+      <div class="topbar-right"><span class="api-status"><i></i> Mock API</span><span class="top-divider"></span><span class="top-avatar">JD</span></div>
+    </header>
+
+    <section class="content">
+      <div class="page-heading">
+        <div>
+          <div class="eyebrow">WORKSPACE / {{ pageTitle() | uppercase }}</div>
+          <h1>{{ pageTitle() }} <span class="title-count">{{ recordsCount() }}</span></h1>
+          <p>Manage and organize your {{ isUsers() ? 'team members and their access' : 'product catalog and inventory' }}.</p>
+        </div>
+        <button class="primary-button" (click)="openCreate()"><span class="plus">＋</span> Add {{ isUsers() ? 'user' : 'product' }}</button>
+      </div>
+
+      <div class="stat-grid">
+        <article class="stat-card">
+          <div class="stat-top"><span>Total {{ pageTitle() }}</span><span class="stat-icon purple">{{ isUsers() ? '♙' : '▦' }}</span></div>
+          <div class="stat-number">{{ recordsCount() }}</div>
+          <div class="stat-foot"><span class="trend">↗ Live</span><span>records in your workspace</span></div>
+        </article>
+        <article class="stat-card">
+          <div class="stat-top"><span>{{ isUsers() ? 'Active roles' : 'Total inventory' }}</span><span class="stat-icon blue">⌁</span></div>
+          <div class="stat-number">{{ isUsers() ? '3' : (products().length ? products().reduce(sumStock, 0) : 0) }}</div>
+          <div class="stat-foot"><span class="soft-label">{{ isUsers() ? 'Across your team' : 'Units in stock' }}</span></div>
+        </article>
+        <article class="stat-card">
+          <div class="stat-top"><span>{{ isUsers() ? 'Access control' : 'Catalog status' }}</span><span class="stat-icon green">✓</span></div>
+          <div class="stat-number">{{ isUsers() ? 'Enabled' : 'Healthy' }}</div>
+          <div class="stat-foot"><span class="green-dot"></span><span>{{ isUsers() ? 'Role-based permissions' : 'All systems operational' }}</span></div>
+        </article>
+      </div>
+
+      <div class="table-card">
+        <div class="table-toolbar">
+          <div><h2>All {{ pageTitle() }}</h2><p>A list of all {{ pageTitle().toLowerCase() }} in your workspace.</p></div>
+          <div class="toolbar-actions">
+            <label class="search-box"><span>⌕</span><input [value]="searchTerm()" (input)="searchTerm.set($any($event.target).value)" placeholder="Search {{ pageTitle().toLowerCase() }}..." /></label>
+            <button class="refresh-button" (click)="load()" title="Refresh records">↻</button>
+          </div>
+        </div>
+
+        @if (error()) { <div class="alert error-alert">{{ error() }}</div> }
+        @if (notice()) { <div class="alert success-alert">{{ notice() }} <button (click)="notice.set('')">×</button></div> }
+
+        <div class="table-wrap">
+          @if (isUsers()) {
+            <table>
+              <thead><tr><th>USER</th><th>ROLE</th><th>STATUS</th><th class="actions-heading">ACTIONS</th></tr></thead>
+              <tbody>
+                @for (user of filteredUsers(); track user.id) {
+                  <tr>
+                    <td><div class="user-cell"><div class="person-avatar" [class]="'person-avatar avatar-' + (user.id.charCodeAt(0) % 4)">{{ initials(user.name) }}</div><div><strong>{{ user.name }}</strong><span>{{ user.email }}</span></div></div></td>
+                    <td><span class="role-pill" [class.admin-role]="user.role === 'Admin'">{{ user.role }}</span></td>
+                    <td><span class="status-pill"><i></i> Active</span></td>
+                    <td><div class="row-actions"><button (click)="editUser(user)" title="Edit user">✎</button><button class="delete-action" (click)="deleteUser(user)" title="Delete user">⌫</button></div></td>
+                  </tr>
+                } @empty {
+                  <tr><td colspan="4" class="empty-state">No users found. Try another search or add a user.</td></tr>
+                }
+              </tbody>
+            </table>
+          } @else {
+            <table>
+              <thead><tr><th>PRODUCT</th><th>SKU</th><th>PRICE</th><th>STOCK</th><th class="actions-heading">ACTIONS</th></tr></thead>
+              <tbody>
+                @for (product of filteredProducts(); track product.id) {
+                  <tr>
+                    <td><div class="product-cell"><div class="product-icon">▧</div><div><strong>{{ product.name }}</strong><span>Product ID: {{ product.id }}</span></div></div></td>
+                    <td><span class="sku">{{ product.sku }}</span></td>
+                    <td><strong class="price">{{ product.price | currency:'USD':'symbol':'1.2-2' }}</strong></td>
+                    <td><span class="stock-pill" [class.low-stock]="product.stock < 15">{{ product.stock }} units</span></td>
+                    <td><div class="row-actions"><button (click)="editProduct(product)" title="Edit product">✎</button><button class="delete-action" (click)="deleteProduct(product)" title="Delete product">⌫</button></div></td>
+                  </tr>
+                } @empty {
+                  <tr><td colspan="5" class="empty-state">No products found. Try another search or add a product.</td></tr>
+                }
+              </tbody>
+            </table>
+          }
+          @if (loading()) { <div class="loading-bar"><span></span></div> }
+        </div>
+        <footer class="table-footer"><span>Showing <strong>{{ isUsers() ? filteredUsers().length : filteredProducts().length }}</strong> of <strong>{{ recordsCount() }}</strong> results</span><span class="powered">Built with <strong>Angular Signals</strong> <span class="footer-dot">•</span> json-server</span></footer>
+      </div>
+      <div class="page-footer">© 2026 Atlas Admin. A clean starter for your next project.</div>
+    </section>
+  </main>
+</div>
+
+@if (editorOpen()) {
+  <div class="modal-backdrop" (click)="closeEditor()">
+    <section class="editor-modal" role="dialog" aria-modal="true" [attr.aria-label]="editorMode() === 'create' ? 'Create record' : 'Edit record'" (click)="$event.stopPropagation()">
+      <div class="modal-heading"><div><span class="modal-eyebrow">{{ editorMode() === 'create' ? 'NEW RECORD' : 'UPDATE RECORD' }}</span><h2>{{ editorMode() === 'create' ? 'Add ' : 'Edit ' }}{{ isUsers() ? 'user' : 'product' }}</h2><p>Fill in the details below to {{ editorMode() === 'create' ? 'create a new' : 'update this' }} record.</p></div><button class="modal-close" (click)="closeEditor()">×</button></div>
+      <form (ngSubmit)="save()" #recordForm="ngForm">
+        @if (isUsers()) {
+          <label class="field-label">Full name<input name="name" [(ngModel)]="userForm.name" required minlength="2" placeholder="e.g. Alex Morgan" /></label>
+          <label class="field-label">Email address<input name="email" [(ngModel)]="userForm.email" required email type="email" placeholder="alex@example.com" /></label>
+          <label class="field-label">Role<select name="role" [(ngModel)]="userForm.role" required><option value="Admin">Admin</option><option value="Editor">Editor</option><option value="Viewer">Viewer</option></select></label>
+        } @else {
+          <label class="field-label">Product name<input name="name" [(ngModel)]="productForm.name" required minlength="2" placeholder="e.g. Wireless Mouse" /></label>
+          <label class="field-label">SKU<input name="sku" [(ngModel)]="productForm.sku" required placeholder="e.g. ACC-420" /></label>
+          <div class="form-row"><label class="field-label">Price (USD)<input name="price" [(ngModel)]="productForm.price" required type="number" min="0" step="0.01" /></label><label class="field-label">Stock quantity<input name="stock" [(ngModel)]="productForm.stock" required type="number" min="0" step="1" /></label></div>
+        }
+        @if (error()) { <div class="alert error-alert">{{ error() }}</div> }
+        <div class="modal-actions"><button type="button" class="secondary-button" (click)="closeEditor()">Cancel</button><button type="submit" class="primary-button" [disabled]="recordForm.invalid || loading()">{{ loading() ? 'Saving…' : (editorMode() === 'create' ? 'Create ' : 'Save changes') }}{{ editorMode() === 'create' ? (isUsers() ? ' user' : ' product') : '' }}</button></div>
+      </form>
+    </section>
+  </div>
+}
